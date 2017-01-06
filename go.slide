@@ -1,0 +1,395 @@
+Go: language of the cloud
+4 June 2015
+Tags: go golang
+
+Mehul Choube
+
+
+
+
+* Say Hi!
+
+.image http://talks.golang.org/2012/10things/gopher.jpg
+
+
+
+
+* Hello, world
+
+.play hello.go
+
+
+
+
+* Hello, world 2.0
+
+.play hello2.go
+
+
+
+
+* What is Go?
+- open source
+- concurrent
+- garbage-collected
+- simple
+
+
+
+
+* History
+Design began in late 2007.
+
+Key players:
+- Robert Griesemer, Rob Pike, Ken Thompson.
+- Later: Ian Lance Taylor, Russ Cox.
+
+Became open source in November 2009.
+Language stable as of Go 1, early 2012.
+
+
+
+
+* The reason for Go
+
+Goals:
+- eliminate slowness
+- eliminate clumsiness
+- improve effectiveness
+- maintain (even improve) scale
+
+Go was designed by and for people who write *and*read*and*debug*and*maintain* large software systems.
+
+Go's purpose is *not* research into programming language design.
+
+Go's purpose is to make its designer's programming lives better.
+
+Ken Thompson:
+"...just about the same time we were starting on Go. I read or tried to read the C++0x proposed standard and that was convincer for me."
+
+
+
+
+* Distributing binaries
+
+If you are a beginning Go programmer, you can just mail your executable to your friends or your parents, as long as they run the same architecture and operating system.
+
+
+
+
+* Pain
+
+What makes large-scale development hard with C++ or Java (at least):
+- slow builds.
+- uncontrolled dependencies.
+- each programmer using a different subset of the language.
+- poor program understanding (documentation, etc.).
+- duplication of effort.
+
+Language *features* don't usually address these.
+
+
+
+
+* Dependencies in C and C++
+
+.image ./compiling.png
+
+Source: xkcd.com/303/
+
+
+
+
+* Dependencies in C and C++
+
+ANSI C and #ifdef, #ifndef guards:
+- dependencies accumulate.
+- throw includes at the program until it compiles.
+- no way to know what can be removed.
+
+C++ exacerbated the problem:
+- one #include file per class.
+- code (not just declarations) in #include files.
+-#ifdef, #ifndef guards persist.
+
+
+Rob Pike:
+"Mike Burrows who built Google Chubby server noticed one day that a header file was being compiled 37K times and he didn't understand the need of the file in the build"
+
+
+
+
+* Dependencies in Go
+
+Dependencies are defined (syntactically) in the language.
+Explicit, clear, computable.
+
+	import "encoding/json"
+
+
+Unused dependencies cause error at compile time.
+
+.play import_err.go
+
+
+
+
+* Defer statement
+
+A "defer" statement invokes a function whose execution is deferred to the moment the surrounding function returns.
+
+	func CopyFile(dstName, srcName string) (written int64, err error) {
+		src, err := os.Open(srcName)
+		if err != nil {
+			return
+		}
+		defer src.Close()
+	
+		dst, err := os.Create(dstName)
+		if err != nil {
+			return
+		}
+		defer dst.Close()
+	
+		return io.Copy(dst, src)
+	}
+
+
+
+
+
+* Concurrency
+
+In UNIX we think about *processes* connected by *pipes*:
+
+	find ~/work/src/nb -type f | grep -i 'test' | xargs wc -l
+
+Each tool designed to do one thing and to do it well.
+
+The Go analogue: *goroutines* connected by *channels*.
+
+
+
+
+
+* Concurrency: goroutine
+
+.play goroutine.go
+
+
+
+
+* Concurrency: channels
+
+*Channels* are a typed conduit for:
+- Synchronization.
+- Communication.
+
+The channel operator *<-* is used to send and receive values.
+
+.play channel.go
+
+
+
+
+* Concurrency contd.
+
+Worried about blocking calls, fire a goroutine they are cheap.
+
+.play blocking.go
+
+
+
+
+* Concurrency: Go way
+
+- identify independent computation(s) in the program; fire goroutine(s) for those
+- if you need to communicate with goroutine(s) use channel(s)
+
+
+.link http://rspace.googlecode.com/hg/slide/concur.html Concurrency is not Parallelism (it's better)
+
+
+
+
+* Interface
+.play interface.go
+.play interface2.go
+
+
+
+
+* Interface contd.
+
+Let's take a closer look at io.Copy()
+
+	func Copy(dst Writer, src Reader) (written int64, err error)
+
+Here dst is of type Write interface
+
+	type Writer interface {
+		Write(p []byte) (n int, err error)
+	}
+
+and src is of type Reader interface
+
+	type Reader interface {
+		Read(p []byte) (n int, err error)
+	}
+
+
+
+
+* Interface contd.
+
+What that means is all the following is possible
+
+	err = io.Copy(os.Stdout, file)
+
+	io.Copy(os.Stdout, res.Body)
+
+	io.Copy(w, os.Stdin)
+
+	io.Copy(aMemFile, src)
+
+	io.Copy(clientFd, src) // where clientFd is a socket connection
+
+
+
+
+* Interface: Testing DB interactions
+
+	package main
+	
+	import (
+		"fmt"
+		"somesite.com/database"
+	)
+	
+	type AppDatabase interface {
+		GetData() string
+	}
+	
+	func printData(db AppDatabase) {
+		fmt.Println(db.GetData())
+	}
+	
+	func main() {
+		db := database.NewDatabase()
+	    printData(db)
+	}
+
+
+
+
+* Interface: Testing DB interactions contd.
+
+	package main
+	
+	import (
+		"fmt"
+		"testing"
+	)
+
+	type MockDB struct {}
+
+	func (db MockDB) GetData() {
+		return "data"
+	}
+	
+	func TestPrintData(t *testing.T) {
+		MockDB mockdb
+		d := printData(mockdb)
+		if d != "data" {
+			t.Errorf("printData failed. expected %s got %s", "data", d)
+		}
+	}
+
+
+
+
+* Interface: Mock out the file system
+
+Got a package that works with the file system, but dont want your test to actually use the disk?
+
+	var fs fileSystem = osFS{}
+	
+	type fileSystem interface {
+	    Open(name string) (file, error)
+	    Stat(name string) (os.FileInfo, error)
+	}
+	
+	type file interface {
+	    io.Closer
+	    io.Reader
+	    io.ReaderAt
+	    io.Seeker
+	    Stat() (os.FileInfo, error)
+	}
+	
+	// osFS implements fileSystem using the local disk.
+	type osFS struct{}
+	
+	func (osFS) Read(p []byte) (n int, err error) {
+		str := "string"; p = []byte(str); return len(str), nil }
+
+
+
+
+* Go comes with well designed APIs for many of today's requirements:
+
+- HTTP server and client
+- JSON
+- Unicode
+- Cryptography
+- HTML and plain text template engine
+
+If you are making a web application that does not need a database, the standard library has you covered.
+
+
+
+
+* Testing Web App
+
+Go has good support for testing web application(s)
+
+	func TestPostToAnalyzer(t *testing.T) {
+		// Test server that always responds with 200 code
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(200)
+		}))
+		defer server.Close()
+		
+		conf.AnalyzerURL = server.URL
+		
+		jsonStr := "{\"Name\":\"collector\"}"
+		
+		err := postToAnalyzer(server.URL, []byte(jsonStr))
+		if err != nil {
+			t.Errorf("expected postToAnalyzer() to work. error: %v", err)
+		}
+	}
+
+
+
+
+* Notable users
+
+- Google (Notable Youtube)
+- Apcera
+- BBC Worldwide
+- Cloud Foundry
+- Dropbox
+- GitHub
+- Heroku
+- Mozilla Services
+- SoundCloud
+- Splice
+- Square
+- Twitch
+
+
+* Try it!
+
+.image http://google-api-go-client.googlecode.com/hg-history/e7cb3ed6d99833c944a2e5d15cc012144c2c6368/examples/gopher.png
+
