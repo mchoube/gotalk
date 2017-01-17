@@ -1,0 +1,629 @@
+Go
+17 Jan 2017
+Tags: go golang
+
+Bruce Montague
+Mehul Choube
+
+
+* Say Hi!
+
+.image http://talks.golang.org/2012/10things/gopher.jpg
+
+
+* Hello, world
+
+.play hello.go
+
+
+* Hello, world 2.0
+
+.play hello2.go
+
+.link http://localhost:8080/World
+
+.link http://localhost:8080/Veritas
+
+.link http://localhost:8080/Appliance
+
+
+* What is Go?
+- open source
+- concurrent
+- garbage-collected
+- simple
+
+
+* History
+
+Design began in late 2007.
+
+- Robert Griesemer, Rob Pike, and Ken Thompson.
+- Ian Lance Taylor and Russ Cox.
+
+Open source since 2009 with a very active community.
+
+Language stable as of Go 1, early 2012.
+
+Go 1.7 is coming this August.
+
+
+* Why Go?
+
+Go is an answer to problems of scale at Google.
+
+.image google_datacenter.jpg 500 _
+
+
+* System Scale
+
+- designed to scale to 10⁶⁺ machines
+- everyday jobs run on 1000s of machines
+- jobs coordinate, interact with others in the system
+- lots going on at once
+
+Solution: great support for concurrency
+
+.image gophercomplex6.jpg
+
+
+* A Second Problem: Engineering Scale
+
+In 2011:
+
+- 5000+ developers across 40+ offices
+- 20+ changes per minute
+- 50% of code base changes every month
+- 50 million test cases executed per day
+- single code tree
+
+Solution: design the language for large code bases
+
+
+* Who uses Go at Google?
+
+Hundreds of projects. Thousands of Go programmers. Millions of lines of Go code.
+
+Public examples:
+
+- Flywheel: SPDY proxy for Chrome on mobile devices
+- dl.google.com: Download server for Chrome, ChromeOS, Android SDK, Earth, etc.
+- Vitess: YouTube MySQL balancer
+- Seesaw: Linux Virtual Server (LVS) based load balancer
+- Lingo: Logs analysis in Go, migrated from Sawzall
+
+The target is networked servers, but Go is a great general-purpose language.
+
+
+* Who uses Go besides Google?
+
+.link http://golang.org/wiki/GoUsers
+
+Aerospike, BBC Worldwide, Bitbucket, Booking.com, *CoreOS*, Datadog, Digital Ocean, *Docker*, *Dropbox*, *Facebook*, Getty Images, *GitHub*, GOV.UK, Heroku, IBM, Intel, InfluxDB, Iron.io, *Kubernetes*, Medium, *MongoDB*, *Mozilla* *services*, *Netflix*, New York Times, pool.ntp.org, Rackspace, Shutterfly, SmugMug, SoundCloud, *SpaceX*, Square, Stack Exchange, Thomson Reuters Eikon, Tumblr, Twitch, *Twitter*, *Uber*, VMWare ...
+
+.image gopherbus.jpg 300 _
+
+
+* Concurrency
+
+
+* Concurrency
+
+In UNIX we think about *processes* connected by *pipes*:
+
+	find ~/work/src/nb -type f | grep -i 'test' | xargs wc -l
+
+Each tool designed to do one thing and to do it well.
+
+The Go analogue: *goroutines* connected by *channels*.
+
+
+* Concurrency: goroutine
+
+.code goroutine.go /func.f1/,/}/,/}/
+.code goroutine.go /func.f2/,/}/,/}/
+
+
+* Concurrency: goroutine contd.
+
+.play goroutine.go /func.main/,/}/
+
+
+* Concurrency: channels
+
+*Channels* are a typed conduit for:
+- Synchronization.
+- Communication.
+
+The channel operator *<-* is used to send and receive values.
+
+.code channel.go /func.f1/,/}/
+.play channel.go /func.main/,/}/
+
+
+* Concurrency contd.
+
+Let's make a serial program concurrent:
+
+.code blocking.go
+
+
+* Concurrency contd.
+
+Fire a goroutine for the blocking call
+
+.code blocking1.go
+
+
+* Concurrency contd.
+
+With timeout
+
+.code blocking2.go /func nonBlocking/,/}/,/}/,/}/
+
+
+* Concurrency contd.
+
+With timeout
+
+.code blocking2.go /func main/,/}/
+
+
+* Concurrency contd.
+
+In just a few simple transformations we used Go's concurrency primitives to convert a
+
+- slow
+- sequential
+
+program into one that is
+
+- fast
+- concurrent
+
+No locks. No condition variables. No futures. No callbacks.
+
+
+* Concurrency: Go way
+
+- identify independent computation(s) in the program; fire goroutine(s) for those
+- if you need to communicate with goroutine(s) use channel(s)
+
+
+.link http://rspace.googlecode.com/hg/slide/concur.html Concurrency is not Parallelism (it's better)
+
+
+* Interface
+
+
+* Interface
+
+.play interface.go
+
+
+* Interface contd.
+
+.play interface2.go
+
+
+* Interface contd.
+
+.play interface3.go
+
+
+* Interface contd.
+
+.play interface4.go
+
+
+* Interface contd.
+
+.code interface5.go /func/,/}/,/}/,/}/
+.play interface5.go /func main/,/}/,/}/
+
+
+* Interface contd.
+
+Let's take a closer look at io.Copy()
+
+	func Copy(dst Writer, src Reader) (written int64, err error)
+
+Here dst is of type Write interface
+
+	type Writer interface {
+		Write(p []byte) (n int, err error)
+	}
+
+and src is of type Reader interface
+
+	type Reader interface {
+		Read(p []byte) (n int, err error)
+	}
+
+
+* Interface contd.
+
+What that means is all the following is possible
+
+	err = io.Copy(os.Stdout, file)
+
+	io.Copy(os.Stdout, res.Body)
+
+	io.Copy(w, os.Stdin)
+
+	io.Copy(aMemFile, src)
+
+	io.Copy(clientFd, src) // where clientFd is a socket connection
+
+
+* Tools
+
+Great tools available with the compiler:
+
+- *gofmt*: Gofmt formats Go programs.
+- *go* *test*: Unit test framework.
+- *go* *build* *-race*: Enable data race detection.
+- *go* *vet*: For analysing Go code and finding common mistakes.
+- *go* *tool* *cover*: Generating code coverage reports.
+- *golint*: Checks your code for style violations.
+
+
+* Tools contd.
+
+- *benchcmp*: Go’s testing package has built-in benchmarking facilities that produce useful statistics about speed and allocations.
+- *oracle*: Oracle is a source analysis tool capable of answering a multitude of questions about Go programs
+- *gorename*: A tool for type-aware renaming of identifiers – that is constants, variables, types, functions and methods.
+
+
+* Standard library
+
+
+* Example: Google Search frontend
+
+.play frontend.go /func main/,/func handleSearch/
+
+.link http://localhost:8080/search
+.link http://localhost:8080/search?q=golang
+.link http://localhost:8080/search?q=golang&output=json
+.link http://localhost:8080/search?q=golang&output=prettyjson
+
+
+* That's it for the search handler
+
+All the packages are from the standard library:
+
+  import (
+      "encoding/json"
+      "fmt"
+      "html/template"
+      "log"
+      "net/http"
+      "time"
+  )
+
+.link https://golang.org/pkg/
+
+
+* Microservices
+
+- Single Responsibility Principle.
+- Each running in its own process.
+- Communicating with lightweight mechanisms, often an HTTP resource API.
+
+
+* Go best fit for Microservices
+
+- Self contained binary.
+- Easy to develop networked service (HTTP, socket, MQ)
+- Easy to develop highly concurrent service.
+- Very few to none dependencies to manage.
+
+
+* Sample docker file
+
+.code Dockerfile
+
+
+* Thanks!
+
+.image gophercon2015.jpg
+
+
+* Getting started
+
+* You're interested in Go.  What next?
+
+Take the Go Tour online.
+
+.link http://tour.golang.org
+
+Then go deeper ...
+
+.link http://golang.org/wiki/Learn
+
+* Comparing Go and other languages
+
+* "Go: 90% Perfect, 100% of the time" -bradfitz, 2014
+
+.image funfast.svg
+
+# Brad Fitzpatrick, GoCon Tokyo, May 2014
+
+
+* Fast builds
+
+.image compiling.png
+
+Source: xkcd.com/303/
+
+
+* Interface: Testing DB interactions
+
+	package main
+	
+	import (
+		"fmt"
+		"somesite.com/database"
+	)
+	
+	type AppDatabase interface {
+		GetData() string
+	}
+	
+	func printData(db AppDatabase) {
+		fmt.Println(db.GetData())
+	}
+	
+	func main() {
+		db := database.NewDatabase()
+	    printData(db)
+	}
+
+
+* Interface: Testing DB interactions contd.
+
+	package main
+	
+	import (
+		"fmt"
+		"testing"
+	)
+
+	type MockDB struct {}
+
+	func (db MockDB) GetData() {
+		return "data"
+	}
+	
+	func TestPrintData(t *testing.T) {
+		MockDB mockdb
+		d := printData(mockdb)
+		if d != "data" {
+			t.Errorf("printData failed. expected %s got %s", "data", d)
+		}
+	}
+
+
+* Interface: Mock out the file system
+
+Got a package that works with the file system, but dont want your test to actually use the disk?
+
+	var fs fileSystem = osFS{}
+	
+	type fileSystem interface {
+	    Open(name string) (file, error)
+	    Stat(name string) (os.FileInfo, error)
+	}
+	
+	type file interface {
+	    io.Closer
+	    io.Reader
+	    io.ReaderAt
+	    io.Seeker
+	    Stat() (os.FileInfo, error)
+	}
+	
+	// osFS implements fileSystem using the local disk.
+	type osFS struct{}
+	
+	func (osFS) Read(p []byte) (n int, err error) {
+		str := "string"; p = []byte(str); return len(str), nil }
+
+
+* Google Search: A fake framework
+
+We can simulate a back end search with a random timeout up to 100ms.
+
+.code google/fake.go /START2/,/STOP2/
+
+
+* Google Search: Test the framework
+
+.play google-serial.go /func.main/,/}/ HLsearch
+
+
+* Google Search (serial)
+
+The `Search` function takes a query and returns a slice of `Results`.
+
+Search invokes the Web, Image, and Video searches serially, then constructs the `results` slice.
+
+.code google/serial.go /func Search/,/^}/
+.play google-serial.go /google.Search/
+
+
+* Go primitives:
+
+goroutines, channels, and the `select` statement.
+
+
+* Goroutines
+
+Goroutines are like lightweight threads.
+
+They start with tiny stacks and resize as needed.
+
+Go programs can have hundreds of thousands of them.
+
+Start a goroutine using the `go` statement:
+
+  go f(args)
+
+The Go runtime schedules goroutines onto OS threads.
+
+Blocked goroutines don't use a thread.
+
+
+* Channels
+
+Channels provide communication between goroutines.
+
+  c := make(chan string)
+
+  // goroutine 1
+  c <- "hello!"
+
+  // goroutine 2
+  s := <-c
+  fmt.Println(s) // "hello!"
+
+
+* Concurrency
+
+In UNIX we think about *processes* connected by *pipes*:
+
+	find ~/work/src/nb -type f | grep -i 'test' | xargs wc -l
+
+Each tool designed to do one thing and to do it well.
+
+The Go analogue: *goroutines* connected by *channels*.
+
+
+
+* Select
+
+A `select` statement blocks until communication can proceed.
+
+  select {
+  case x := <-in:
+    fmt.Println("received", x)
+  case out <- v:
+    fmt.Println("sent", v)
+  }
+
+Only the selected case runs.
+
+
+* Google Search (parallel)
+
+Run the Web, Image, and Video searches concurrently, and wait for all results.
+
+The `func` literals are closures over `query` and `c`.
+
+.code google/parallel.go /func Search/,/^}/
+.play google-parallel.go /google.Search/
+
+* Google Search (timeout)
+
+Don't wait for slow servers.
+
+.code google/timeout.go /func Search/,/STOP/
+.play google-timeout.go /google.Search/ HLsearch
+
+
+* What just happened?
+
+In just a few simple transformations we used Go's concurrency primitives to convert a
+
+- slow
+- sequential
+- failure-sensitive
+
+program into one that is
+
+- fast
+- concurrent
+- robust.
+
+No locks. No condition variables. No futures. No callbacks.
+
+
+* Interface
+
+.code websocket.go /func dnldHandler/,/STOP/
+
+
+* Interface contd.
+
+.code websocket.go /io.Copy/ HLcopy
+
+
+
+Let's take a closer look at io.Copy()
+
+	func Copy(dst Writer, src Reader) (written int64, err error)
+
+Here dst is of type Write interface
+
+	type Writer interface {
+		Write(p []byte) (n int, err error)
+	}
+
+and src is of type Reader interface
+
+	type Reader interface {
+		Read(p []byte) (n int, err error)
+	}
+
+
+* Interface contd.
+
+.code websocket2.go /func dnldHandler/,/STOP/
+
+
+* Interface: Testing DB interactions
+
+	package main
+	
+	import (
+		"fmt"
+		"somesite.com/database"
+	)
+	
+	type AppDatabase interface {
+		GetData() string
+	}
+	
+	func printData(db AppDatabase) {
+		fmt.Println(db.GetData())
+	}
+	
+	func main() {
+		db := database.NewDatabase()
+	    printData(db)
+	}
+
+
+* Interface: Testing DB interactions contd.
+
+	package main
+	
+	import (
+		"fmt"
+		"testing"
+	)
+
+	type MockDB struct {}
+
+	func (db MockDB) GetData() {
+		return "data"
+	}
+	
+	func TestPrintData(t *testing.T) {
+		MockDB mockdb
+		d := printData(mockdb)
+		if d != "data" {
+			t.Errorf("printData failed. expected %s got %s", "data", d)
+		}
+	}
+
